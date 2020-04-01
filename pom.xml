@@ -8,9 +8,9 @@
   to you under the Apache License, Version 2.0 (the
   "License"); you may not use this file except in compliance
   with the License.  You may obtain a copy of the License at
-  
+
   http://www.apache.org/licenses/LICENSE-2.0
-  
+
   Unless required by applicable law or agreed to in writing,
   software distributed under the License is distributed on an
   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -38,7 +38,7 @@
   </organization>
 
   <groupId>org.apache.mina</groupId>
-  <version>2.1.4-SNAPSHOT</version>
+  <version>2.1.4-hubspot-SNAPSHOT</version>
   <artifactId>mina-parent</artifactId>
   <name>Apache MINA</name>
   <packaging>pom</packaging>
@@ -105,7 +105,7 @@
     <version.compiler.plugin>3.8.0</version.compiler.plugin>
     <version.dashboard.plugin>1.0.0-beta-1</version.dashboard.plugin>
     <version.dependency.plugin>3.1.1</version.dependency.plugin>
-    <version.deploy.plugin>3.0.0-M1</version.deploy.plugin>
+    <version.deploy.plugin>2.8.2</version.deploy.plugin>
     <version.docck.plugin>1.1</version.docck.plugin>
     <version.eclipse.plugin>2.10</version.eclipse.plugin>
     <version.enforcer.plugin>3.0.0-M2</version.enforcer.plugin>
@@ -161,17 +161,17 @@
   </properties>
 
   <modules>
-    <module>mina-legal</module>
+<!--    <module>mina-legal</module>-->
     <module>mina-core</module>
-    <module>mina-transport-apr</module>
-    <module>mina-filter-compression</module>
-    <module>mina-statemachine</module>
-    <module>mina-integration-beans</module>
-    <module>mina-integration-xbean</module>
-    <module>mina-integration-ognl</module>
-    <module>mina-integration-jmx</module>
-    <module>mina-example</module>
-    <module>mina-http</module>
+<!--    <module>mina-transport-apr</module>-->
+<!--    <module>mina-filter-compression</module>-->
+<!--    <module>mina-statemachine</module>-->
+<!--    <module>mina-integration-beans</module>-->
+<!--    <module>mina-integration-xbean</module>-->
+<!--    <module>mina-integration-ognl</module>-->
+<!--    <module>mina-integration-jmx</module>-->
+<!--    <module>mina-example</module>-->
+<!--    <module>mina-http</module>-->
     <!--module>mina-benchmarks</module-->
   </modules>
 
@@ -413,14 +413,14 @@
           </plugin>
         </plugins>
       </build>
-      
+
       <modules>
         <module>distribution</module>
       </modules>
     </profile>
 
   </profiles>
-  
+
   <build>
     <!-- =======================  WARNING ========================== -->
     <!-- Only put pluginManagement info in this pom for plugins      -->
@@ -809,7 +809,7 @@
           </instructions>
         </configuration>
       </plugin>
-    
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-site-plugin</artifactId>
