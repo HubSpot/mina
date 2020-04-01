@@ -479,8 +479,6 @@ class SslHandler {
             return false;
         }
 
-        sslEngine.closeOutbound();
-
         createOutNetBuffer(0);
         SSLEngineResult result;
 
@@ -499,6 +497,8 @@ class SslHandler {
         }
 
         outNetBuffer.flip();
+
+        sslEngine.closeOutbound();
 
         return true;
     }
