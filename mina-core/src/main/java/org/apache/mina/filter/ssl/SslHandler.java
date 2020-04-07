@@ -222,7 +222,7 @@ class SslHandler {
                 outNetBuffer.clear();
             } while (sslEngine.wrap(emptyBuffer.buf(), outNetBuffer.buf()).bytesProduced() > 0);
         } catch (SSLException e) {
-            // Ignore.
+            LOGGER.debug("Unexpected exception wrapping data for closed inbound", e);
         } finally {
             outNetBuffer.free();
             outNetBuffer = null;
@@ -466,7 +466,7 @@ class SslHandler {
 
     /**
      * Start SSL shutdown process.
-     * 
+     *
      * @return <tt>true</tt> if shutdown process is started. <tt>false</tt> if
      *         shutdown process is already finished.
      * @throws SSLException
