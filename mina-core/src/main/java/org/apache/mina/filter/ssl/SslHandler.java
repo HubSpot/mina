@@ -228,7 +228,13 @@ class SslHandler {
             outNetBuffer = null;
         }
 
-        sslEngine.closeOutbound();
+        createOutNetBuffer(0);
+        try {
+            closeSslEngineOutbound();
+        } catch (SSLException e) {
+            LOGGER.debug("Unexpected exception closing ssl engine outbound", e);
+        }
+
         sslEngine = null;
 
         preHandshakeEventQueue.clear();
@@ -479,6 +485,17 @@ class SslHandler {
 
         createOutNetBuffer(0);
 
+        closeSslEngineOutbound();
+
+        outNetBuffer.flip();
+
+        return true;
+    }
+
+    /**
+     * Call sslEngine.closeOutbound() and then repeatedly wrap to flush data
+     */
+    private void closeSslEngineOutbound() throws SSLException {
         sslEngine.closeOutbound();
 
         // Keep calling wrap until we're done
@@ -496,10 +513,6 @@ class SslHandler {
                 throw new SSLException("Unexpected status: " + result);
             }
         }
-
-        outNetBuffer.flip();
-
-        return true;
     }
 
     /**
