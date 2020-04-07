@@ -23,8 +23,6 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
@@ -195,7 +193,7 @@ class SslHandler {
             LOGGER.debug("{} SSL Handler Initialization done.", sslFilter.getSessionInfo(session));
         }
     }
-    
+
 
     /**
      * Release allocated buffers.
@@ -303,7 +301,7 @@ class SslHandler {
     /* no qualifier */void flushFilterWrite() {
         // Fire events only when the lock is available for this handler.
         IoFilterEvent event;
-    
+
         // We need synchronization here inevitably because filterWrite can be
         // called simultaneously and cause 'bad record MAC' integrity error.
         while ((event = filterWriteEventQueue.poll()) != null) {
@@ -322,7 +320,7 @@ class SslHandler {
     /* no qualifier */void scheduleMessageReceived(NextFilter nextFilter, Object message) {
         messageReceivedEventQueue.add(new IoFilterEvent(nextFilter, IoEventType.MESSAGE_RECEIVED, session, message));
     }
-    
+
     /* no qualifier */void flushMessageReceived() {
 	IoFilterEvent event;
 
@@ -335,7 +333,7 @@ class SslHandler {
     /**
      * Call when data are read from net. It will perform the initial hanshake or decrypt
      * the data if SSL has been initialiaed.
-     * 
+     *
      * @param buf buffer to decrypt
      * @param nextFilter Next filter in chain
      * @throws SSLException on errors
@@ -392,7 +390,7 @@ class SslHandler {
 
     /**
      * Get decrypted application data.
-     * 
+     *
      * @return buffer with data
      */
     /* no qualifier */IoBuffer fetchAppBuffer() {
@@ -408,24 +406,24 @@ class SslHandler {
 
     /**
      * Get encrypted data to be sent.
-     * 
+     *
      * @return buffer with data
      */
     /* no qualifier */IoBuffer fetchOutNetBuffer() {
         IoBuffer answer = outNetBuffer;
-        
+
         if (answer == null) {
             return emptyBuffer;
         }
 
         outNetBuffer = null;
-        
+
         return answer.shrink();
     }
 
     /**
      * Encrypt provided buffer. Encrypted data returned by getOutNetBuffer().
-     * 
+     *
      * @param src
      *            data to encrypt
      * @throws SSLException
@@ -449,7 +447,7 @@ class SslHandler {
         while (src.hasRemaining()) {
 
             SSLEngineResult result = sslEngine.wrap(src, outNetBuffer.buf());
-            
+
             if (result.getStatus() == SSLEngineResult.Status.OK) {
                 if (result.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_TASK) {
                     doTasks();
@@ -479,23 +477,24 @@ class SslHandler {
             return false;
         }
 
+        createOutNetBuffer(0);
+
         sslEngine.closeOutbound();
 
-        createOutNetBuffer(0);
-        SSLEngineResult result;
-
-        for (;;) {
-            result = sslEngine.wrap(emptyBuffer.buf(), outNetBuffer.buf());
-            if (result.getStatus() == SSLEngineResult.Status.BUFFER_OVERFLOW) {
+        // Keep calling wrap until we're done
+        while (!sslEngine.isOutboundDone()) {
+            SSLEngineResult result = sslEngine.wrap(emptyBuffer.buf(), outNetBuffer.buf());
+            if (result.getStatus() == Status.CLOSED) {
+                break;
+            } else if (result.getStatus() == SSLEngineResult.Status.BUFFER_OVERFLOW) {
                 outNetBuffer.capacity(outNetBuffer.capacity() << 1);
                 outNetBuffer.limit(outNetBuffer.capacity());
+            } else if (result.getStatus() == Status.OK) {
+                continue;
             } else {
-                break;
+                // Not sure how to handle BUFFER_UNDERFLOW
+                throw new SSLException("Unexpected status: " + result);
             }
-        }
-
-        if (result.getStatus() != SSLEngineResult.Status.CLOSED) {
-            throw new SSLException("Improper close state: " + result);
         }
 
         outNetBuffer.flip();
@@ -525,7 +524,7 @@ class SslHandler {
                     + "appBuffer: " + appBuffer);
             case CLOSED:
                 Exception exception =new RuntimeIoException("SSL/TLS close_notify received");
-                
+
                 // Empty the Ssl queue
                 for (IoFilterEvent event:filterWriteEventQueue) {
                     EncryptedWriteRequest writeRequest = (EncryptedWriteRequest)event.getParameter();
@@ -533,21 +532,21 @@ class SslHandler {
                     writeFuture.setException(exception);
                     writeFuture.notifyAll();
                 }
-                
+
                 // Empty the session queue
                 WriteRequestQueue queue = session.getWriteRequestQueue();
                 WriteRequest request = null;
-               
+
     	    	while ((request = queue.poll(session)) != null) {
     	    	    WriteFuture writeFuture = request.getFuture();
     	    	    writeFuture.setException(exception);
     	    	    writeFuture.notifyAll();
         	}
-                    
+
                 // We *must* shutdown session
                 session.closeNow();
                 break;
-            default: 
+            default:
                 break;
         }
     }
@@ -569,7 +568,7 @@ class SslHandler {
                 // Send the SECURE message only if it's the first SSL handshake
                 if (firstSSLNegociation) {
                     firstSSLNegociation = false;
-                    
+
                     nextFilter.event(session, SslEvent.SECURED);
                 }
 
@@ -686,7 +685,7 @@ class SslHandler {
                 }
 
                 IoBuffer currentOutNetBuffer = fetchOutNetBuffer();
-                
+
                 if (currentOutNetBuffer != null && currentOutNetBuffer.hasRemaining()) {
                     writeFuture = new DefaultWriteFuture(session);
                     sslFilter.filterWrite(nextFilter, session, new DefaultWriteRequest(currentOutNetBuffer, writeFuture));
@@ -784,7 +783,7 @@ class SslHandler {
                 // We have to grow the target buffer, it's too small.
                 // Then we can call the unwrap method again
                 int newCapacity = sslEngine.getSession().getApplicationBufferSize();
-                
+
                 if (appBuffer.remaining() >= newCapacity) {
                     // The buffer is already larger than the max buffer size suggested by the SSL engine.
                     // Raising it any more will not make sense and it will end up in an endless loop. Throwing an error is safer
@@ -795,7 +794,7 @@ class SslHandler {
                 continue;
             }
         } while (((status == SSLEngineResult.Status.OK) || (status == SSLEngineResult.Status.BUFFER_OVERFLOW))
-                && ((localHandshakeStatus == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING) || 
+                && ((localHandshakeStatus == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING) ||
                         (localHandshakeStatus == SSLEngineResult.HandshakeStatus.NEED_UNWRAP)));
 
         return res;
@@ -821,7 +820,7 @@ class SslHandler {
     /**
      * Creates a new MINA buffer that is a deep copy of the remaining bytes in
      * the given buffer (between index buf.position() and buf.limit())
-     * 
+     *
      * @param src
      *            the buffer to copy
      * @return the new buffer, ready to read from
